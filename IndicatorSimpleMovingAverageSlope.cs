@@ -1,14 +1,8 @@
 // Copyright QUANTOWER LLC. © 2017-2023. All rights reserved.
 
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics.X86;
 using TradingPlatform.BusinessLayer;
-using TradingPlatform.BusinessLayer.Utils;
-using static TradingPlatform.BusinessLayer.HistoryItem.CustomFields;
 
 namespace IndicatorSimpleMovingAverageSlope
 {
@@ -21,8 +15,10 @@ namespace IndicatorSimpleMovingAverageSlope
         public double threshold = 0.6;
 
         public double sma_slope,smap, normalized_sma_slope;
-        Indicator sma;
+        Indicator sma, sd;
         private Trend currentTrend, currentTrend2;
+	
+	public override string ShortName => $"SMAS ({window}; {threshold})";
         public IndicatorSimpleMovingAverageSlope()
             : base()
         {
@@ -30,9 +26,9 @@ namespace IndicatorSimpleMovingAverageSlope
             Description = "The Simple Moving Average Slope indicator is a technical analysis tool designed to help traders detect the direction and strength of the current trend in the price of an asset.";
 
             AddLineSeries("SMAS", Color.Blue, 1, LineStyle.Solid);   
-            AddLineLevel(0,"t", Color.Blue, 1, LineStyle.Solid);
             AddLineSeries("up", Color.Blue, 1, LineStyle.Solid);
             AddLineSeries("low", Color.Blue, 1, LineStyle.Solid);
+	    AddLineSeries("zero", Color.Blue, 1, LineStyle.Solid);
 
             SeparateWindow = true;
         }
@@ -41,17 +37,20 @@ namespace IndicatorSimpleMovingAverageSlope
         {
             this.sma = Core.Indicators.BuiltIn.SMA(this.window,PriceType.Close);
             this.AddIndicator(this.sma);
+	    this.sd = Core.Indicators.BuiltIn.SD(this.window, PriceType.Close,MaMode.SMA);
+            this.AddIndicator(this.sd);
             smap = sma.GetValue();
         }
 
         protected override void OnUpdate(UpdateArgs args)
         {
             sma_slope = sma.GetValue() - smap;
-            normalized_sma_slope = sma_slope / (window / 2);
+            normalized_sma_slope = sma_slope / (sd.GetValue()/10);
             smap = sma.GetValue();
             SetValue(normalized_sma_slope);
             SetValue(threshold, 1);
             SetValue(-threshold, 2);
+	    SetValue(0, 3);
             var newTrend = normalized_sma_slope > threshold ? Trend.Up :Trend.Unknown;
             if (currentTrend != newTrend)
             {
