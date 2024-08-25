@@ -43,7 +43,7 @@ namespace IndicatorSimpleMovingAverageSlope
         protected override void OnUpdate(UpdateArgs args)
         {
             sma_slope = sma.GetValue() - smap;
-            normalized_sma_slope = sma_slope / (threshold*10);
+            normalized_sma_slope = sma_slope / (window/10);
             smap = sma.GetValue();
             SetValue(normalized_sma_slope);
             SetValue(threshold, 1);
