@@ -15,7 +15,7 @@ namespace IndicatorSimpleMovingAverageSlope
         public double threshold = 0.6;
 
         public double sma_slope,smap, normalized_sma_slope;
-        Indicator sma;
+        Indicator sma, sd;
         private Trend currentTrend, currentTrend2;
 	
 	public override string ShortName => $"SMAS ({window}; {threshold})";
@@ -37,13 +37,15 @@ namespace IndicatorSimpleMovingAverageSlope
         {
             this.sma = Core.Indicators.BuiltIn.SMA(this.window,PriceType.Close);
             this.AddIndicator(this.sma);
+	    this.sd = Core.Indicators.BuiltIn.SD(this.window, PriceType.Close,MaMode.SMA);
+	    this.AddIndicator(this.sd);
             smap = sma.GetValue();
         }
 
         protected override void OnUpdate(UpdateArgs args)
         {
             sma_slope = sma.GetValue() - smap;
-            normalized_sma_slope = sma_slope / (window/10);
+            normalized_sma_slope = sma_slope / (sd.GetValue(window*10)/10);
             smap = sma.GetValue();
             SetValue(normalized_sma_slope);
             SetValue(threshold, 1);
