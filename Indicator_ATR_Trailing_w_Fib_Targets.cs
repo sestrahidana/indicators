@@ -4,9 +4,9 @@ using System;
 using System.Drawing;
 using TradingPlatform.BusinessLayer;
 
-namespace Indicator_ATR_Trailing_stop_w_fib_retracements
+namespace Indicator_ATR_Trailing_w_Fib_Targets
 {
-    public class Indicator_ATR_Trailing_stop_w_fib_retracements : Indicator
+	public class Indicator_ATR_Trailing_w_Fib_Targets : Indicator
     {
         [InputParameter("ATR Period", 0, 1, 9999)]
         public int Period = 5;
@@ -31,12 +31,12 @@ namespace Indicator_ATR_Trailing_stop_w_fib_retracements
         public bool trendChange;
         private Indicator atr;
         public override string ShortName => $"ATRTrailStop ({this.Period})";
-        public Indicator_ATR_Trailing_stop_w_fib_retracements()
+        public Indicator_ATR_Trailing_w_Fib_Targets()
             : base()
         {
             // Defines indicator's name and description.
-            Name = "ATR Trailing stop w/ fib retracements";
-            Description = "fib retracements on the atr trailing stop";
+            Name = "ATR Trailing w/Fib Targets";
+            Description = "Fib Targets on the ATR trailing stop";
 
             // Defines line on demand with particular parameters.
             AddLineSeries("TrailStop", Color.White, 1, LineStyle.Solid);
