@@ -23,12 +23,14 @@ namespace IndicatorSimpleMovingAverageSlope
             Name = "Simple Moving Average Slope";
             Description = "The Simple Moving Average Slope indicator is a technical analysis tool designed to help traders detect the direction and strength of the current trend in the price of an asset.";
 
-            AddLineLevel(0, "0'Line", Color.Gray, 1, LineStyle.Solid);
-            AddLineLevel(0.6, "Up'Line", Color.Gray, 1, LineStyle.Solid);
-            AddLineLevel(-0.6, "Down'Line", Color.Gray, 1, LineStyle.Solid);
+            AddLineLevel(0, "0'Line", Color.Blue, 1, LineStyle.Solid);
+            AddLineLevel(0.6, "Up'Line", Color.Blue, 1, LineStyle.Solid);
+            AddLineLevel(-0.6, "Down'Line", Color.Blue, 1, LineStyle.Solid);
             AddLineSeries("SMAS", Color.Blue, 1, LineStyle.Solid);
-            AddLineSeries("upCloud", Color.Gray, 1, LineStyle.Solid);
-            AddLineSeries("downCloud", Color.Gray, 1, LineStyle.Solid);
+            AddLineSeries("upCloud", Color.Blue, 1, LineStyle.Solid);
+            AddLineSeries("downCloud", Color.Blue, 1, LineStyle.Solid);
+	    LinesSeries[1].Visible = false;
+	    LinesSeries[2].Visible = false;
 
             SeparateWindow = true;
         }
