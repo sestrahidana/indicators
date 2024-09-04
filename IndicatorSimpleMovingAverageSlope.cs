@@ -11,6 +11,7 @@ namespace IndicatorSimpleMovingAverageSlope
         [InputParameter("Window", 0, 1, 9999)]
         public int window = 20;
 
+        [InputParameter("Threshold(cloud)", 0, 0.1, 999, 0.1, 1)]
         public double threshold = 0.6;
         public double sma_slope,smap, normalized_sma_slope;
         Indicator sma, sd;
