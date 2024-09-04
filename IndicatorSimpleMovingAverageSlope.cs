@@ -11,9 +11,7 @@ namespace IndicatorSimpleMovingAverageSlope
         [InputParameter("Window", 0, 1, 9999)]
         public int window = 20;
 
-        [InputParameter("Threshold", 0, 0.01, 100,0.01,2)]
         public double threshold = 0.6;
-
         public double sma_slope,smap, normalized_sma_slope;
         Indicator sma, sd;
         private Trend currentTrend, currentTrend2;
@@ -25,10 +23,12 @@ namespace IndicatorSimpleMovingAverageSlope
             Name = "Simple Moving Average Slope";
             Description = "The Simple Moving Average Slope indicator is a technical analysis tool designed to help traders detect the direction and strength of the current trend in the price of an asset.";
 
-            AddLineSeries("SMAS", Color.Blue, 1, LineStyle.Solid);   
-            AddLineSeries("up", Color.Blue, 1, LineStyle.Solid);
-            AddLineSeries("low", Color.Blue, 1, LineStyle.Solid);
-	    AddLineSeries("zero", Color.Blue, 1, LineStyle.Solid);
+            AddLineLevel(0, "0'Line", Color.Gray, 1, LineStyle.Solid);
+            AddLineLevel(0.6, "Up'Line", Color.Gray, 1, LineStyle.Solid);
+            AddLineLevel(-0.6, "Down'Line", Color.Gray, 1, LineStyle.Solid);
+            AddLineSeries("SMAS", Color.Blue, 1, LineStyle.Solid);
+            AddLineSeries("upCloud", Color.Gray, 1, LineStyle.Solid);
+            AddLineSeries("downCloud", Color.Gray, 1, LineStyle.Solid);
 
             SeparateWindow = true;
         }
@@ -45,12 +45,11 @@ namespace IndicatorSimpleMovingAverageSlope
         protected override void OnUpdate(UpdateArgs args)
         {
             sma_slope = sma.GetValue() - smap;
-            normalized_sma_slope = sma_slope / (sd.GetValue(window*10)/10);
+            normalized_sma_slope = sma_slope / (sd.GetValue()/window);
             smap = sma.GetValue();
             SetValue(normalized_sma_slope);
             SetValue(threshold, 1);
             SetValue(-threshold, 2);
-	    SetValue(0, 3);
             var newTrend = normalized_sma_slope > threshold ? Trend.Up :Trend.Unknown;
             if (currentTrend != newTrend)
             {
