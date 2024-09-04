@@ -12,6 +12,12 @@ namespace Indicator_ATR_Trailing_stop_w_fib_retracements
         public int Period = 5;
         [InputParameter("ATR Factor", 0, 0.1, 999, 0.1, 1)]
         public double ATRFactor = 3.5;
+        [InputParameter("Fib1", 0, 0.1, 999, 0.1, 1)]
+        public double Fib1Lvl = 61.8;
+        [InputParameter("Fib2", 0, 0.1, 999, 0.1, 1)]
+        public double Fib2Lvl = 78.6;
+        [InputParameter("Fib3", 0, 0.1, 999, 0.1, 1)]
+        public double Fib3Lvl = 88.6;
         [InputParameter("Type of Moving Average", 3, variants: new object[] {
         "Simple", MaMode.SMA,
         "Exponential", MaMode.EMA,
@@ -40,6 +46,9 @@ namespace Indicator_ATR_Trailing_stop_w_fib_retracements
             AddLineSeries("fibTgtUp1", Color.Green, 1, LineStyle.Solid);
             AddLineSeries("fibTgtUp2", Color.Green, 1, LineStyle.Solid);
             AddLineSeries("fibTgtUp3", Color.Green, 1, LineStyle.Solid);
+            AddLineSeries("fib1", Color.Gray, 1, LineStyle.Solid);
+            AddLineSeries("fib2", Color.Gray, 1, LineStyle.Solid);
+            AddLineSeries("fib3", Color.Gray, 1, LineStyle.Solid);
             // By default indicator will be applied on main window of the chart
             SeparateWindow = false;
         }
@@ -75,9 +84,9 @@ namespace Indicator_ATR_Trailing_stop_w_fib_retracements
             double prevEx = ex;
             ex = (trend > 0 && prevTrend < 0) ? currHigh : (trend < 0 && prevTrend > 0) ? currLow : trend == 1 ? Math.Max(prevEx, currHigh) : trend == -1 ? Math.Min(prevEx, currLow) : prevEx;
 
-            fib1 = ex + (trailStop - ex) * fibLvl1 / 100;
-            fib2 = ex + (trailStop - ex) * fibLvl2 / 100;
-            fib3 = ex + (trailStop - ex) * fibLvl3 / 100;
+            fib1 = ex + (trailStop - ex) * Fib1Lvl / 100;
+            fib2 = ex + (trailStop - ex) * Fib2Lvl / 100;
+            fib3 = ex + (trailStop - ex) * Fib3Lvl / 100;
 
             double prevSwitchVal = switchVal;
             double prevDiff = diff;
@@ -109,6 +118,9 @@ namespace Indicator_ATR_Trailing_stop_w_fib_retracements
                 if (fibTgt3 < trailStop)
                     SetValue(fibTgt3, 3);
             }
+            SetValue(fib1,7);
+            SetValue(fib2,8);
+            SetValue(fib3,9);
         }
     }
 }
