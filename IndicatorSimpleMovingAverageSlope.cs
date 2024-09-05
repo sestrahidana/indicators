@@ -47,6 +47,8 @@ namespace IndicatorSimpleMovingAverageSlope
 
         protected override void OnUpdate(UpdateArgs args)
         {
+	    if (args.Reason == UpdateReason.NewTick)
+                return;
             sma_slope = sma.GetValue() - smap;
             normalized_sma_slope = sma_slope / (sd.GetValue()/window);
             smap = sma.GetValue();
