@@ -23,11 +23,12 @@ public class IndicatorDailyOHLC : Indicator
     private const string SHOW_EXTEND_LINES_NAME_SI = "Show extend lines";
     private const string LABEL_ALIGNMENT_NAME_SI = "Label alignment";
     private const string LABEL_POSITION = "Label position";
+    private const string LABEL_FORMAT = "Format";
 
     private const string ALL_DAY_SESSION_TYPE = "All day";
     private const string SPECIFIED_SESSION_TYPE = "Specified session";
     private const string CUSTOM_RANGE_SESSION_TYPE = "Custom range";
-
+    
     [InputParameter(SESSION_TYPE_NAME_SI, 10, variants: new object[]
     {
         ALL_DAY_SESSION_TYPE, DailyOHLCSessionType.AllDay,
@@ -110,10 +111,9 @@ public class IndicatorDailyOHLC : Indicator
 
     public NativeAlignment LabelAlignment { get; set; }
     public int labelFormat { get; set; }
+    public int labelPosition { get; set; }
     public bool ShowLabel { get; private set; }
-    public bool labelPosition { get; private set; }
-    public bool labelText { get; private set; }
-    public bool labelPrice { get; private set; }
+    private ISessionsContainer selectedSessionContainer;
     public LineOptions OpenLineOptions
     {
         get => this.openLineOptions;
@@ -261,10 +261,12 @@ public class IndicatorDailyOHLC : Indicator
         this.LabelAlignment = NativeAlignment.Right;
         this.labelFormat = 1;
         //this.labelPosition = 1;
-        this.labelPosition = true;
-        this.labelText = true;
+        //this.labelPosition = true;
+        //this.labelText = true;
         this.ShowLabel = true;
-        this.labelPrice = true;
+        //this.labelPrice = true;
+        this.labelFormat = 1;
+        this.labelPosition = 1;
         this.rangeCache = new List<DailyRangeItem>();
 
         this.OpenLineOptions = new LineOptions()
@@ -464,6 +466,13 @@ public class IndicatorDailyOHLC : Indicator
         {
             var settings = base.Settings;
 
+            var belowTL = new SelectItem("Below the line", 0);
+            var aboveTL = new SelectItem("Above the line", 1);
+
+            var formatPrice = new SelectItem("Price", 0);
+            var formatTextPrice = new SelectItem("Text and Price", 1);
+            var formatText = new SelectItem("Text", 2);
+
             if (settings.GetItemByName(CUSTOM_SESSION_NAME_SI) is SettingItem si)
             {
                 si.ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation;
@@ -508,7 +517,7 @@ public class IndicatorDailyOHLC : Indicator
             {
                 SeparatorGroup = openLineStyleSeparator,
                 Text = loc._("Custom text"),
-                Relation = new SettingItemRelationVisibility("LabelText", true)
+                Relation = new SettingItemRelationVisibility(LABEL_FORMAT, formatText,formatTextPrice)
             });
             //
             var highLineStyleSeparator = new SettingItemSeparatorGroup("High line style", -999);
@@ -533,7 +542,7 @@ public class IndicatorDailyOHLC : Indicator
             {
                 SeparatorGroup = highLineStyleSeparator,
                 Text = loc._("Custom text"),
-                Relation = new SettingItemRelationVisibility("LabelText", true)
+                Relation = new SettingItemRelationVisibility(LABEL_FORMAT, formatText, formatTextPrice)
             });
             //
             var lowLineStyleSeparator = new SettingItemSeparatorGroup("Low line style", -999);
@@ -558,7 +567,7 @@ public class IndicatorDailyOHLC : Indicator
             {
                 SeparatorGroup = lowLineStyleSeparator,
                 Text = loc._("Custom text"),
-                Relation = new SettingItemRelationVisibility("LabelText", true)
+                Relation = new SettingItemRelationVisibility(LABEL_FORMAT, formatText, formatTextPrice)
             });
             //
             var closeLineStyleSeparator = new SettingItemSeparatorGroup("Close line style", -999);
@@ -583,7 +592,7 @@ public class IndicatorDailyOHLC : Indicator
             {
                 SeparatorGroup = closeLineStyleSeparator,
                 Text = loc._("Custom text"),
-                Relation = new SettingItemRelationVisibility("LabelText", true)
+                Relation = new SettingItemRelationVisibility(LABEL_FORMAT, formatText, formatTextPrice)
             });
             //
             var middleLineStyleSeparator = new SettingItemSeparatorGroup("Middle line style", -999);
@@ -608,7 +617,7 @@ public class IndicatorDailyOHLC : Indicator
             {
                 SeparatorGroup = middleLineStyleSeparator,
                 Text = loc._("Custom text"),
-                Relation = new SettingItemRelationVisibility("LabelText", true)
+                Relation = new SettingItemRelationVisibility(LABEL_FORMAT, formatText, formatTextPrice)
             });
             //
             var defaultSeparator = settings.FirstOrDefault()?.SeparatorGroup;
@@ -629,24 +638,30 @@ public class IndicatorDailyOHLC : Indicator
                 SeparatorGroup = defaultSeparator,
                 Relation = new SettingItemRelationVisibility("ShowLabel", true)
             });
-            settings.Add(new SettingItemBoolean(LABEL_POSITION, this.labelPosition, 60)
+            settings.Add(new SettingItemSelectorLocalized(LABEL_POSITION, new SelectItem(LABEL_POSITION, this.labelPosition), new List<SelectItem>
+                             {
+                                 belowTL,
+                                 aboveTL
+                             })
             {
                 SeparatorGroup = defaultSeparator,
-                Text = loc._("Above the line"),
+                Text = "Label position",
+                SortIndex = 60,
                 Relation = new SettingItemRelationVisibility("ShowLabel", true)
             });
-            settings.Add(new SettingItemBoolean("LabelText", this.labelText, 60)
+            settings.Add(new SettingItemSelectorLocalized(LABEL_FORMAT, new SelectItem(LABEL_FORMAT, this.labelFormat), new List<SelectItem>
+                             {
+                                 formatPrice,
+                                 formatTextPrice,
+                                 formatText
+                             })
             {
                 SeparatorGroup = defaultSeparator,
-                Text = loc._("Text"),
+                Text = "Format",
+                SortIndex = 60,
                 Relation = new SettingItemRelationVisibility("ShowLabel", true)
             });
-            settings.Add(new SettingItemBoolean("LabelPrice", this.labelPrice, 60)
-            {
-                SeparatorGroup = defaultSeparator,
-                Text = loc._("Price"),
-                Relation = new SettingItemRelationVisibility("ShowLabel", true)
-            });
+
             return settings;
         }
         set
@@ -717,15 +732,31 @@ public class IndicatorDailyOHLC : Indicator
             if (holder.TryGetValue("ShowLabel", out item) && item.Value is bool showLabel)
                 this.ShowLabel = showLabel;
 
-            if (holder.TryGetValue(LABEL_POSITION, out item) && item.Value is bool LabelPosition)
-                this.labelPosition = LabelPosition;
+            var needRefresh = false;
+            if (holder.TryGetValue(LABEL_POSITION, out var lpitem))
+            {
+                var newContainerId = lpitem.GetValue<int>();
 
-            if (holder.TryGetValue("LabelText", out item) && item.Value is bool LabelText)
-                this.labelText = LabelText;
+                if (newContainerId != this.labelPosition)
+                {
+                    this.labelPosition = newContainerId;
+                    this.selectedSessionContainer = Core.Instance.CustomSessions[Convert.ToString(this.labelPosition)];
+                    needRefresh |= item.ValueChangingReason == SettingItemValueChangingReason.Manually;
+                }
+            }
+            if (holder.TryGetValue(LABEL_FORMAT, out var lfitem))
+            {
+                var newContainerId = lfitem.GetValue<int>();
 
-            if (holder.TryGetValue("LabelPrice", out item) && item.Value is bool LabelPrice)
-                this.labelPrice = LabelPrice;
-
+                if (newContainerId != this.labelFormat)
+                {
+                    this.labelFormat = newContainerId;
+                    this.selectedSessionContainer = Core.Instance.CustomSessions[Convert.ToString(this.labelFormat)];
+                    needRefresh |= item.ValueChangingReason == SettingItemValueChangingReason.Manually;
+                }
+            }
+            if (needRefresh)
+                this.Refresh();
             base.Settings = value;
         }
     }
@@ -958,14 +989,14 @@ public class IndicatorDailyOHLC : Indicator
     {
         string label="";
         if(ShowLabel==true)
-            label = labelText==true&labelPrice==true?prefix + this.Symbol.FormatPrice(price):labelPrice==true? this.Symbol.FormatPrice(price):labelText==true?prefix:"";
+            label = labelFormat==1 ? prefix + this.Symbol.FormatPrice(price) : labelFormat == 0 ? this.Symbol.FormatPrice(price) : prefix;
         var labelSize = gr.MeasureString(label, font);
 
         var rect = new RectangleF()
         {
             Height = labelSize.Height,
             Width = labelSize.Width + 5,
-            Y = labelPosition == true ? priceY - labelSize.Height - lineOptions.Width : priceY - lineOptions.Width + 1
+            Y = labelPosition == 1 ? priceY - labelSize.Height - lineOptions.Width : priceY - lineOptions.Width + 1
         };
 
         switch (nativeAlignment)
