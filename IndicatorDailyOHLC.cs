@@ -23,8 +23,6 @@ public class IndicatorDailyOHLC : Indicator
     private const string SHOW_EXTEND_LINES_NAME_SI = "Show extend lines";
     private const string LABEL_ALIGNMENT_NAME_SI = "Label alignment";
     private const string LABEL_POSITION = "Label position";
-    private const string REMOVE_PRICE = "Remove price";
-
 
     private const string ALL_DAY_SESSION_TYPE = "All day";
     private const string SPECIFIED_SESSION_TYPE = "Specified session";
@@ -111,14 +109,11 @@ public class IndicatorDailyOHLC : Indicator
     private DateTime extendRangeEndTime;
 
     public NativeAlignment LabelAlignment { get; set; }
-    [InputParameter(LABEL_POSITION, 65, variants: new object[]
-    {
-        "Below the line",0,
-        "Above the line",1
-    })]
-    public int labelPosition = 1;
-    [InputParameter(REMOVE_PRICE,75)]
-    public bool removePrice = false;
+    public int labelFormat { get; set; }
+    public bool ShowLabel { get; private set; }
+    public bool labelPosition { get; private set; }
+    public bool labelText { get; private set; }
+    public bool labelPrice { get; private set; }
     public LineOptions OpenLineOptions
     {
         get => this.openLineOptions;
@@ -264,6 +259,12 @@ public class IndicatorDailyOHLC : Indicator
         this.AllowFitAuto = true;
         this.SeparateWindow = false;
         this.LabelAlignment = NativeAlignment.Right;
+        this.labelFormat = 1;
+        //this.labelPosition = 1;
+        this.labelPosition = true;
+        this.labelText = true;
+        this.ShowLabel = true;
+        this.labelPrice = true;
         this.rangeCache = new List<DailyRangeItem>();
 
         this.OpenLineOptions = new LineOptions()
@@ -484,7 +485,6 @@ public class IndicatorDailyOHLC : Indicator
                 startExtendTimeSi.Format = endExtendTimeSi.Format = DatePickerFormat.LongTime;
                 startExtendTimeSi.ValueChangingBehavior = endExtendTimeSi.ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation;
             }
-
             //
             var openLineStyleSeparator = new SettingItemSeparatorGroup("Open line style", -999);
             settings.Add(new SettingItemLineOptions("OpenLineOptions", this.OpenLineOptions, 60)
@@ -507,7 +507,8 @@ public class IndicatorDailyOHLC : Indicator
             settings.Add(new SettingItemString("OpenCustomText", this.OpenCustomText, 60)
             {
                 SeparatorGroup = openLineStyleSeparator,
-                Text = loc._("Add custom text")
+                Text = loc._("Custom text"),
+                Relation = new SettingItemRelationVisibility("LabelText", true)
             });
             //
             var highLineStyleSeparator = new SettingItemSeparatorGroup("High line style", -999);
@@ -531,7 +532,8 @@ public class IndicatorDailyOHLC : Indicator
             settings.Add(new SettingItemString("HighCustomText", this.HighCustomText, 60)
             {
                 SeparatorGroup = highLineStyleSeparator,
-                Text = loc._("Add custom text")
+                Text = loc._("Custom text"),
+                Relation = new SettingItemRelationVisibility("LabelText", true)
             });
             //
             var lowLineStyleSeparator = new SettingItemSeparatorGroup("Low line style", -999);
@@ -555,7 +557,8 @@ public class IndicatorDailyOHLC : Indicator
             settings.Add(new SettingItemString("LowCustomText", this.LowCustomText, 60)
             {
                 SeparatorGroup = lowLineStyleSeparator,
-                Text = loc._("Add custom text")
+                Text = loc._("Custom text"),
+                Relation = new SettingItemRelationVisibility("LabelText", true)
             });
             //
             var closeLineStyleSeparator = new SettingItemSeparatorGroup("Close line style", -999);
@@ -579,7 +582,8 @@ public class IndicatorDailyOHLC : Indicator
             settings.Add(new SettingItemString("CloseCustomText", this.CloseCustomText, 60)
             {
                 SeparatorGroup = closeLineStyleSeparator,
-                Text = loc._("Add custom text")
+                Text = loc._("Custom text"),
+                Relation = new SettingItemRelationVisibility("LabelText", true)
             });
             //
             var middleLineStyleSeparator = new SettingItemSeparatorGroup("Middle line style", -999);
@@ -603,19 +607,45 @@ public class IndicatorDailyOHLC : Indicator
             settings.Add(new SettingItemString("MiddleCustomText", this.MiddleCustomText, 60)
             {
                 SeparatorGroup = middleLineStyleSeparator,
-                Text = loc._("Add custom text")
+                Text = loc._("Custom text"),
+                Relation = new SettingItemRelationVisibility("LabelText", true)
             });
-
+            //
             var defaultSeparator = settings.FirstOrDefault()?.SeparatorGroup;
+            settings.Add(new SettingItemBoolean("ShowLabel", this.ShowLabel, 60)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Show label")
+            });
             settings.Add(new SettingItemFont("Font", this.CurrentFont, 60)
             {
+                SeparatorGroup = defaultSeparator,
                 Text = loc._("Font"),
-                SeparatorGroup = defaultSeparator
+                Relation = new SettingItemRelationVisibility("ShowLabel",true)
             });
-            settings.Add(new SettingItemAlignment(LABEL_ALIGNMENT_NAME_SI, this.LabelAlignment, 70)
+            settings.Add(new SettingItemAlignment(LABEL_ALIGNMENT_NAME_SI, this.LabelAlignment, 60)
             {
-                Text = loc._("Label position"),
-                SeparatorGroup = defaultSeparator
+                Text = loc._("Label alignment"),
+                SeparatorGroup = defaultSeparator,
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
+            });
+            settings.Add(new SettingItemBoolean(LABEL_POSITION, this.labelPosition, 60)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Above the line"),
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
+            });
+            settings.Add(new SettingItemBoolean("LabelText", this.labelText, 60)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Text"),
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
+            });
+            settings.Add(new SettingItemBoolean("LabelPrice", this.labelPrice, 60)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Price"),
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
             });
             return settings;
         }
@@ -684,9 +714,22 @@ public class IndicatorDailyOHLC : Indicator
             if (holder.TryGetValue(LABEL_ALIGNMENT_NAME_SI, out item) && item.Value is NativeAlignment labelAlignment)
                 this.LabelAlignment = labelAlignment;
 
+            if (holder.TryGetValue("ShowLabel", out item) && item.Value is bool showLabel)
+                this.ShowLabel = showLabel;
+
+            if (holder.TryGetValue(LABEL_POSITION, out item) && item.Value is bool LabelPosition)
+                this.labelPosition = LabelPosition;
+
+            if (holder.TryGetValue("LabelText", out item) && item.Value is bool LabelText)
+                this.labelText = LabelText;
+
+            if (holder.TryGetValue("LabelPrice", out item) && item.Value is bool LabelPrice)
+                this.labelPrice = LabelPrice;
+
             base.Settings = value;
         }
     }
+
     public override void OnPaintChart(PaintChartEventArgs args)
     {
         var gr = args.Graphics;
@@ -913,15 +956,16 @@ public class IndicatorDailyOHLC : Indicator
 
     private void DrawBillet(Graphics gr, double price, ref float leftX, ref float rightX, ref float priceY, Font font, LineOptions lineOptions, Pen pen, StringFormat stringFormat, NativeAlignment nativeAlignment, string prefix)
     {
-
-        string label = removePrice==false ?prefix + this.Symbol.FormatPrice(price):prefix;
+        string label="";
+        if(ShowLabel==true)
+            label = labelText==true&labelPrice==true?prefix + this.Symbol.FormatPrice(price):labelPrice==true? this.Symbol.FormatPrice(price):labelText==true?prefix:"";
         var labelSize = gr.MeasureString(label, font);
 
         var rect = new RectangleF()
         {
             Height = labelSize.Height,
             Width = labelSize.Width + 5,
-            Y = labelPosition == 1 ? priceY - labelSize.Height - lineOptions.Width : priceY - lineOptions.Width + 1
+            Y = labelPosition == true ? priceY - labelSize.Height - lineOptions.Width : priceY - lineOptions.Width + 1
         };
 
         switch (nativeAlignment)
