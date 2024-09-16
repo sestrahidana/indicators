@@ -13,19 +13,9 @@ namespace ChanneIsIndicators;
 public class IndicatorDailyOHLC : Indicator
 {
     #region Parameters   
-    
-    [InputParameter("Session type", 10, variants: new object[]
-    {
-        "All day", DailyOHLCSessionType.AllDay,
-        "Specified session", DailyOHLCSessionType.SpecifiedSession,
-        "Custom range", DailyOHLCSessionType.CustomRange
-    })]
-    public DailyOHLCSessionType DailySessionType = DailyOHLCSessionType.AllDay;
 
-    [InputParameter("Custom session name", 20)]
+    public DailyOHLCSessionType DailySessionType = DailyOHLCSessionType.AllDay;
     public string CustomSessionName = string.Empty;
-    
-    [InputParameter("Start time", 20)]
     public DateTime CustomRangeStartTime
     {
         get
@@ -40,8 +30,6 @@ public class IndicatorDailyOHLC : Indicator
         set => this.customRangeStartTime = value;
     }
     private DateTime customRangeStartTime;
-
-    [InputParameter("End time", 20)]
     public DateTime CustomRangeEndTime
     {
         get
@@ -54,19 +42,10 @@ public class IndicatorDailyOHLC : Indicator
         set => this.customRangeEndTime = value;
     }
     private DateTime customRangeEndTime;
-
-    [InputParameter("Numbers of days to calculate", 30, 1, 9999, 1, 0)]
     public int DaysCount = 10;
-
-    [InputParameter("Use previous data (offset in days)", 35, 0, 9999, 1, 0)]
     public int PreviousDataOffset = 0;
-
-    [InputParameter("Show extend lines", 40)]
     public bool UseExtendLines = false;
-
     public bool AllowToDrawExtendLines => this.UseExtendLines && this.DailySessionType != DailyOHLCSessionType.AllDay;
-
-    [InputParameter("Start extend time", 45)]
     public DateTime ExtendRangeStartTime
     {
         get
@@ -79,8 +58,6 @@ public class IndicatorDailyOHLC : Indicator
         set => this.extendRangeStartTime = value;
     }
     private DateTime extendRangeStartTime;
-
-    [InputParameter("End extend time", 50)]
     public DateTime ExtendRangeEndTime
     {
         get
@@ -93,12 +70,10 @@ public class IndicatorDailyOHLC : Indicator
         set => this.extendRangeEndTime = value;
     }
     private DateTime extendRangeEndTime;
-
     public NativeAlignment LabelAlignment { get; set; }
     public int labelFormat { get; set; }
     public int labelPosition { get; set; }
     public bool ShowLabel { get; private set; }
-
     public LineOptions OpenLineOptions
     {
         get => this.openLineOptions;
@@ -218,9 +193,7 @@ public class IndicatorDailyOHLC : Indicator
     private LineOptions middleExtendLineOptions;
     private Pen middleExtendLinePen;
     public bool ShowMiddleLineLabel { get; private set; }
-
     public Font CurrentFont { get; private set; }
-
     public string OpenCustomText="O: ", HighCustomText="H: ", LowCustomText="L: ", CloseCustomText="C: ", MiddleCustomText="M: ";
 
     private readonly IList<DailyRangeItem> rangeCache;
@@ -446,34 +419,129 @@ public class IndicatorDailyOHLC : Indicator
         {
             var settings = base.Settings;
 
+            var allDay = new SelectItem("All day", DailyOHLCSessionType.AllDay);
+            var specifiedSession = new SelectItem("Specified session", DailyOHLCSessionType.SpecifiedSession);
+            var customRange = new SelectItem("Custom range", DailyOHLCSessionType.CustomRange);
+
             var belowTL = new SelectItem("Below the line", 0);
             var aboveTL = new SelectItem("Above the line", 1);
 
             var formatPrice = new SelectItem("Price", 0);
             var formatTextPrice = new SelectItem("Text and Price", 1);
             var formatText = new SelectItem("Text", 2);
+ 
+            //
+            var defaultSeparator = settings.FirstOrDefault()?.SeparatorGroup;
 
-            if (settings.GetItemByName("Custom session name") is SettingItem si)
+            settings.Add(new SettingItemSelectorLocalized("Session type", new SelectItem("Session type", this.DailySessionType), new List<SelectItem>
+                             {
+                                 allDay,
+                                 specifiedSession,
+                                 customRange
+                             })
             {
-                si.ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation;
-                si.Relation = new SettingItemRelationVisibility("Session type", new SelectItem("Specified session", (int)DailyOHLCSessionType.SpecifiedSession));
-            }
-            if (settings.GetItemByName("Start time") is SettingItemDateTime startTimeSi && settings.GetItemByName("End time") is SettingItemDateTime endTimeSi)
+                SeparatorGroup = defaultSeparator,
+                Text = "Session type",
+                SortIndex = 10,
+            });
+            //
+            settings.Add(new SettingItemString("CustomSessionName", this.CustomSessionName, 20)
             {
-                endTimeSi.Relation = startTimeSi.Relation = new SettingItemRelationVisibility("Session type", new SelectItem("Custom range", (int)DailyOHLCSessionType.CustomRange));
-                endTimeSi.Format = startTimeSi.Format = DatePickerFormat.LongTime;
-                endTimeSi.ValueChangingBehavior = startTimeSi.ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation;
-            }
-
-            if (settings.GetItemByName("Show extend lines") is SettingItem showExtendSI)
-                showExtendSI.Relation = new SettingItemRelationVisibility("Session type", new SelectItem("Specified session", (int)DailyOHLCSessionType.SpecifiedSession), new SelectItem("Custom range", (int)DailyOHLCSessionType.CustomRange));
-
-            if (settings.GetItemByName("Start extend time") is SettingItemDateTime startExtendTimeSi && settings.GetItemByName("End extend time") is SettingItemDateTime endExtendTimeSi)
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Custom session name"),
+                Relation = new SettingItemRelationVisibility("Session type", specifiedSession)
+            });
+            settings.Add(new SettingItemDateTime("StartTime", this.customRangeStartTime, 20)
             {
-                startExtendTimeSi.Relation = endExtendTimeSi.Relation = new SettingItemRelationVisibility("Show extend lines", true);
-                startExtendTimeSi.Format = endExtendTimeSi.Format = DatePickerFormat.LongTime;
-                startExtendTimeSi.ValueChangingBehavior = endExtendTimeSi.ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation;
-            }
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Start time"),
+                Format = DatePickerFormat.LongTime,
+                ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation,
+                Relation = new SettingItemRelationVisibility("Session type", customRange)
+            });
+            settings.Add(new SettingItemDateTime("EndTime", this.customRangeEndTime, 20)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("End time"),
+                Format = DatePickerFormat.LongTime,
+                ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation,
+                Relation = new SettingItemRelationVisibility("Session type", customRange)
+            });
+            settings.Add(new SettingItemInteger("DaysCount",this.DaysCount,20)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Numbers of days to calculate"),
+                Relation = new SettingItemRelationVisibility("Session type", allDay, specifiedSession, customRange)
+            });
+            settings.Add(new SettingItemInteger("PreviousDataOffset", this.PreviousDataOffset, 20)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Use previous data (offset in days)"),
+                Relation = new SettingItemRelationVisibility("Session type", allDay, specifiedSession, customRange)
+            });
+            settings.Add(new SettingItemBoolean("ShowExtendLines", this.UseExtendLines, 40)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Show extend lines"),
+                Relation = new SettingItemRelationVisibility("Session type", specifiedSession, customRange)
+            });
+            settings.Add(new SettingItemDateTime("StartExtendTime", this.extendRangeStartTime, 45)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Start extend time"),
+                Format = DatePickerFormat.LongTime,
+                ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation,
+                Relation = new SettingItemRelationVisibility("ShowExtendLines", true)
+            });
+            settings.Add(new SettingItemDateTime("EndExtendTime", this.extendRangeEndTime, 50)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("End extend time"),
+                Format = DatePickerFormat.LongTime,
+                ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation,
+                Relation = new SettingItemRelationVisibility("ShowExtendLines", true)
+            });
+            //
+            settings.Add(new SettingItemBoolean("ShowLabel", this.ShowLabel, 60)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Show label")
+            });
+            settings.Add(new SettingItemFont("Font", this.CurrentFont, 60)
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = loc._("Font"),
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
+            });
+            settings.Add(new SettingItemAlignment("Label alignment", this.LabelAlignment, 60)
+            {
+                Text = loc._("Label alignment"),
+                SeparatorGroup = defaultSeparator,
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
+            });
+            settings.Add(new SettingItemSelectorLocalized("Label position", new SelectItem("Label position", this.labelPosition), new List<SelectItem>
+                             {
+                                 belowTL,
+                                 aboveTL
+                             })
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = "Label position",
+                SortIndex = 60,
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
+            });
+            settings.Add(new SettingItemSelectorLocalized("Format", new SelectItem("Format", this.labelFormat), new List<SelectItem>
+                             {
+                                 formatPrice,
+                                 formatTextPrice,
+                                 formatText
+                             })
+            {
+                SeparatorGroup = defaultSeparator,
+                Text = "Format",
+                SortIndex = 60,
+                Relation = new SettingItemRelationVisibility("ShowLabel", true)
+            });
             //
             var openLineStyleSeparator = new SettingItemSeparatorGroup("Open line style", -999);
             settings.Add(new SettingItemLineOptions("OpenLineOptions", this.OpenLineOptions, 60)
@@ -599,49 +667,7 @@ public class IndicatorDailyOHLC : Indicator
                 Text = loc._("Custom text"),
                 Relation = new SettingItemRelationVisibility("Format", formatText, formatTextPrice)
             });
-            //
-            var defaultSeparator = settings.FirstOrDefault()?.SeparatorGroup;
-            settings.Add(new SettingItemBoolean("ShowLabel", this.ShowLabel, 60)
-            {
-                SeparatorGroup = defaultSeparator,
-                Text = loc._("Show label")
-            });
-            settings.Add(new SettingItemFont("Font", this.CurrentFont, 60)
-            {
-                SeparatorGroup = defaultSeparator,
-                Text = loc._("Font"),
-                Relation = new SettingItemRelationVisibility("ShowLabel",true)
-            });
-            settings.Add(new SettingItemAlignment("Label alignment", this.LabelAlignment, 60)
-            {
-                Text = loc._("Label alignment"),
-                SeparatorGroup = defaultSeparator,
-                Relation = new SettingItemRelationVisibility("ShowLabel", true)
-            });
-            settings.Add(new SettingItemSelectorLocalized("Label position", new SelectItem("Label position", this.labelPosition), new List<SelectItem>
-                             {
-                                 belowTL,
-                                 aboveTL
-                             })
-            {
-                SeparatorGroup = defaultSeparator,
-                Text = "Label position",
-                SortIndex = 60,
-                Relation = new SettingItemRelationVisibility("ShowLabel", true)
-            });
-            settings.Add(new SettingItemSelectorLocalized("Format", new SelectItem("Format", this.labelFormat), new List<SelectItem>
-                             {
-                                 formatPrice,
-                                 formatTextPrice,
-                                 formatText
-                             })
-            {
-                SeparatorGroup = defaultSeparator,
-                Text = "Format",
-                SortIndex = 60,
-                Relation = new SettingItemRelationVisibility("ShowLabel", true)
-            });
-
+            
             return settings;
         }
         set
@@ -652,63 +678,67 @@ public class IndicatorDailyOHLC : Indicator
                 this.OpenLineOptions = openOptions;
             if (holder.TryGetValue("OpenExtendLineOptions", out item) && item.Value is LineOptions openExtendOptions)
                 this.OpenExtendLineOptions = openExtendOptions;
+            if (holder.TryGetValue("ShowOpenLineLabel", out item) && item.Value is bool showOpenLabel)
+                this.ShowOpenLineLabel = showOpenLabel;
+            if (holder.TryGetValue("OpenCustomText", out item) && item.Value is string openCustomText)
+                this.OpenCustomText = openCustomText;
 
             if (holder.TryGetValue("HighLineOptions", out item) && item.Value is LineOptions highOptions)
                 this.HighLineOptions = highOptions;
             if (holder.TryGetValue("HighExtendLineOptions", out item) && item.Value is LineOptions highExtendOptions)
                 this.HighExtendLineOptions = highExtendOptions;
+            if (holder.TryGetValue("ShowHighLineLabel", out item) && item.Value is bool showHighLabel)
+                this.ShowHighLineLabel = showHighLabel;
+            if (holder.TryGetValue("HighCustomText", out item) && item.Value is string highCustomText)
+                this.HighCustomText = highCustomText;
 
             if (holder.TryGetValue("LowLineOptions", out item) && item.Value is LineOptions lowOptions)
                 this.LowLineOptions = lowOptions;
             if (holder.TryGetValue("LowExtendLineOptions", out item) && item.Value is LineOptions lowExtendOptions)
                 this.LowExtendLineOptions = lowExtendOptions;
+            if (holder.TryGetValue("ShowLowLineLabel", out item) && item.Value is bool showLowLabel)
+                this.ShowLowLineLabel = showLowLabel;
+            if (holder.TryGetValue("LowCustomText", out item) && item.Value is string lowCustomText)
+                this.LowCustomText = lowCustomText;
 
             if (holder.TryGetValue("CloseLineOptions", out item) && item.Value is LineOptions closeOptions)
                 this.CloseLineOptions = closeOptions;
             if (holder.TryGetValue("CloseExtendLineOptions", out item) && item.Value is LineOptions closeExtendOptions)
                 this.CloseExtendLineOptions = closeExtendOptions;
+            if (holder.TryGetValue("ShowCloseLineLabel", out item) && item.Value is bool showCloseLabel)
+                this.ShowCloseLineLabel = showCloseLabel;
+            if (holder.TryGetValue("CloseCustomText", out item) && item.Value is string closeCustomText)
+                this.CloseCustomText = closeCustomText;
 
             if (holder.TryGetValue("MiddleLineOptions", out item) && item.Value is LineOptions middleOptions)
                 this.MiddleLineOptions = middleOptions;
             if (holder.TryGetValue("MiddleExtendLineOptions", out item) && item.Value is LineOptions middleExtendOptions)
-                this.MiddleExtendLineOptions = middleExtendOptions;
-
-            if (holder.TryGetValue("ShowOpenLineLabel", out item) && item.Value is bool showOpenLabel)
-                this.ShowOpenLineLabel = showOpenLabel;
-
-            if (holder.TryGetValue("ShowHighLineLabel", out item) && item.Value is bool showHighLabel)
-                this.ShowHighLineLabel = showHighLabel;
-
-            if (holder.TryGetValue("ShowLowLineLabel", out item) && item.Value is bool showLowLabel)
-                this.ShowLowLineLabel = showLowLabel;
-
-            if (holder.TryGetValue("ShowCloseLineLabel", out item) && item.Value is bool showCloseLabel)
-                this.ShowCloseLineLabel = showCloseLabel;
-
+                this.MiddleExtendLineOptions = middleExtendOptions; 
             if (holder.TryGetValue("ShowMiddleLineLabel", out item) && item.Value is bool showMiddleLabel)
                 this.ShowMiddleLineLabel = showMiddleLabel;
-
-            if (holder.TryGetValue("OpenCustomText", out item) && item.Value is string openCustomText)
-                this.OpenCustomText = openCustomText;
-
-            if (holder.TryGetValue("HighCustomText", out item) && item.Value is string highCustomText)
-                this.HighCustomText = highCustomText;
-
-            if (holder.TryGetValue("LowCustomText", out item) && item.Value is string lowCustomText)
-                this.LowCustomText = lowCustomText;
-
-            if (holder.TryGetValue("CloseCustomText", out item) && item.Value is string closeCustomText)
-                this.CloseCustomText = closeCustomText;
-
             if (holder.TryGetValue("MiddleCustomText", out item) && item.Value is string middleCustomText)
                 this.MiddleCustomText = middleCustomText;
 
+            if (holder.TryGetValue("CustomSessionName", out item) && item.Value is string customSessionName)
+                this.CustomSessionName = customSessionName;
+            if (holder.TryGetValue("StartTime", out item) && item.Value is DateTime dtStartTime)
+                this.customRangeStartTime = dtStartTime;
+            if (holder.TryGetValue("EndTime", out item) && item.Value is DateTime dtEndTime)
+                this.customRangeEndTime = dtEndTime;
+            if (holder.TryGetValue("DaysCount", out item) && item.Value is int daysCount)
+                this.DaysCount = daysCount;
+            if (holder.TryGetValue("PreviousDataOffset", out item) && item.Value is int previousDataOffset)
+                this.PreviousDataOffset = previousDataOffset;
+            if (holder.TryGetValue("ShowExtendLines", out item) && item.Value is bool useExtendLines)
+                this.UseExtendLines = useExtendLines;
+            if (holder.TryGetValue("StartExtendTime", out item) && item.Value is DateTime dtStartExtendTime)
+                this.extendRangeStartTime = dtStartExtendTime;
+            if (holder.TryGetValue("EndExtendTime", out item) && item.Value is DateTime dtEndExtendTime)
+                this.extendRangeEndTime = dtEndExtendTime;
             if (holder.TryGetValue("Font", out item) && item.Value is Font font)
                 this.CurrentFont = font;
-
             if (holder.TryGetValue("Label alignment", out item) && item.Value is NativeAlignment labelAlignment)
                 this.LabelAlignment = labelAlignment;
-
             if (holder.TryGetValue("ShowLabel", out item) && item.Value is bool showLabel)
                 this.ShowLabel = showLabel;
 
