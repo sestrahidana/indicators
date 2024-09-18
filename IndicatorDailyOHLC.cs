@@ -741,30 +741,10 @@ public class IndicatorDailyOHLC : Indicator
                 this.LabelAlignment = labelAlignment;
             if (holder.TryGetValue("ShowLabel", out item) && item.Value is bool showLabel)
                 this.ShowLabel = showLabel;
-
-            var needRefresh = false;
-            if (holder.TryGetValue("Label position", out var lpitem))
-            {
-                var newContainerId = lpitem.GetValue<int>();
-
-                if (newContainerId != this.labelPosition)
-                {
-                    this.labelPosition = newContainerId;
-                    needRefresh |= item.ValueChangingReason == SettingItemValueChangingReason.Manually;
-                }
-            }
-            if (holder.TryGetValue("Format", out var lfitem))
-            {
-                var newContainerId = lfitem.GetValue<int>();
-
-                if (newContainerId != this.labelFormat)
-                {
-                    this.labelFormat = newContainerId;
-                    needRefresh |= item.ValueChangingReason == SettingItemValueChangingReason.Manually;
-                }
-            }
-            if (needRefresh)
-                this.Refresh();
+            if (holder.TryGetValue("Label position", out var lpitem)&& lpitem.GetValue<int>() != this.labelPosition)
+                    this.labelPosition = lpitem.GetValue<int>();
+            if (holder.TryGetValue("Format", out var lfitem)&& lfitem.GetValue<int>() != this.labelFormat)
+                    this.labelFormat = lfitem.GetValue<int>();
             base.Settings = value;
         }
     }
