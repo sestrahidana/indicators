@@ -277,7 +277,7 @@ public class IndicatorDivergenceDetector : Indicator
             var separatorGroup = new SettingItemSeparatorGroup(string.Empty, -999);
             settings.Add(new SettingItemBoolean("HideShowSignatures", this.hideshowSignatures, 40)
             {
-                Text = loc._("Signatures"),
+                Text = loc._("Hide signatures"),
                 SeparatorGroup = separatorGroup
             });
             settings.Add(new SettingItemLineOptions("RegularBullishStyle", this.RegularBullishLineStyle, 50)
